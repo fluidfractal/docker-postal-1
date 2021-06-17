@@ -5,7 +5,7 @@ services:
     image: tiredofit/postal
     container_name: postal-app
     ports:
-      - 25:2525
+      - "25:25"
       - 5000:5000
     labels:
       - traefik.enable=true
@@ -26,11 +26,6 @@ services:
       - DB_PASS=postalpass
     
     ## A great idea is to delete this block after first install.
-      - DB_ROOT_PASS=rootpassword
-      - ADMIN_EMAIL=example@hostname.com
-      - ADMIN_PASS=password
-      - ADMIN_FNAME=Example
-      - ADMIN_LNAME=Admin
     ##
 
       - RABBITMQ_HOST=postal-rabbitmq
@@ -46,13 +41,16 @@ services:
   
       - DNS_HOSTNAME=postal.example.com
       - DNS_MX=mx.example.com
-      - DNS_RETURN_PATH=rp.example.com
+      - DNS_RETURN_PATH=rp.postal.example.com
       - DNS_ROUTE_DOMAIN=routes.postal.example.com
       - DNS_TRACK_DOMAIN=track.postal.example.com
       - DNS_SPF=spf.postal.example.com
       - DNS_DKIM_IDENTIFIER=postal
-      - DNS_DOMAIN_VERIFY_PREFIX=example-verification
-      - SMTP_SERVER_ENABLE_TLS=false
+      - DNS_DOMAIN_VERIFY_PREFIX=postal-verification
+      - SMTP_SERVER_ENABLE_TLS=true
+      # Copy cerbot cert and key inside postal-app:/certs/ before
+      - SMTP_SERVER_TLS_CERT=/certs/smtp.cert
+      - SMTP_SERVER_TLS_KEY=/certs/smtp.key
 
       - SMTP_FROM_ADDRESS=noreply@example.com
       - SMTP_FROM_NAME=Postal
@@ -60,13 +58,18 @@ services:
       - SMTP_USER=   ## Fill these in after you have a working installation and server to be able to invite users
       - SMTP_PASS=   ##
 
-      - WEB_HOST=chocobo.space
+      - WEB_HOST=postal.example.com
       - WEB_PROTOCOL=https
 
     networks:
       - proxy
       - services
     restart: always
+    logging:
+      options:
+        max-size: "50m"
+        max-file: "4"
+
 
   postal-db:
     image: tiredofit/mariadb
@@ -82,6 +85,10 @@ services:
     networks:
       - services
     restart: always
+    logging:
+      options:
+        max-size: "50m"
+        max-file: "4"
 
   postal-db-backup:
     image: tiredofit/db-backup
@@ -105,6 +112,10 @@ services:
     networks:
       - services
     restart: always
+    logging:
+      options:
+        max-size: "50m"
+        max-file: "4"
 
   postal-rabbitmq:
     container_name: postal-rabbitmq
@@ -117,18 +128,26 @@ services:
     networks:
       - services
     restart: always
+    logging:
+      options:
+        max-size: "50m"
+        max-file: "4"
 
-  postal-clamav:
-    container_name: postal-clamav
-    image: tiredofit/clamav
-    volumes:
-      - ./data/clamav:/data
-      - ./logs/clamav:/var/log/clamav
-    environment:
-      - ZABBIX_HOSTNAME=postal-clamav
-    networks:
-      - services
-    restart: always
+  #postal-clamav:
+  #  container_name: postal-clamav
+  #  image: tiredofit/clamav
+  #  volumes:
+  #    - ./data/clamav:/data
+  #    - ./logs/clamav:/var/log/clamav
+  #  environment:
+  #    - ZABBIX_HOSTNAME=postal-clamav
+  #  networks:
+  #    - services
+  #  restart: always
+  #  logging:
+  #    options:
+  #      max-size: "50m"
+  #      max-file: "4"
 
   postal-spamassassin:
     image: tiredofit/spamassassin
@@ -142,6 +161,10 @@ services:
     networks:
       - services
     restart: always
+    logging:
+      options:
+        max-size: "50m"
+        max-file: "4"
 
 networks:
   proxy:
